@@ -96,53 +96,96 @@ with tab1:
                 st.success(f"Nota guardada: {nota:.2f}")
 
 
+# — Pestaña 2: Calcular Resultados —————————————————
+with tab2:
+    st.header("Calcular Resultados")
+    if not grupos:
+        st.warning("No hay grupos para calcular resultados.")
+    else:
+        grupo = st.selectbox("Grupo", list(grupos.keys()), key="res_grupo")
+        tipo  = grupos[grupo]["tipo"]
+        fechas = grupos[grupo]["fechas"]
+
+        # Selección de período
+        if tipo == "Ciclos Formativos":
+            periodos = ["Primera", "Segunda", "Tercera", "Curso completo"]
+        else:
+            periodos = ["Curso completo"]
+        periodo = st.selectbox("Periodo", periodos)
+
+        # Cargar fechas del periodo seleccionado
+        if tipo == "Ciclos Formativos" and periodo != "Curso completo":
+            idx = ["Primera", "Segunda", "Tercera"].index(periodo)
+            inicio, fin = fechas[idx]
+        else:
+            if tipo == "Ciclos Formativos":
+                inicio, fin = fechas[0][0], fechas[-1][1]
+            else:
+                inicio, fin = fechas[0]
+
+        # Mostrar resultados
+        if st.button("Mostrar resultados"):
+            fmt = "%d-%m-%Y"
+            di = datetime.strptime(inicio, fmt)
+            df = datetime.strptime(fin, fmt)
+            regs = cuaderno.get(grupo, [])
+            summary = []
+
+            st.subheader(f"Resultados del grupo: {grupo} ({periodo})")
+            for alum in grupos[grupo]["alumnos"]:
+                vals = [
+                    r["nota"] for r in regs
+                    if di <= datetime.strptime(r["fecha"], fmt) <= df and r["nota"] is not None
+                ]
+                exc = sum(
+                    1 for r in regs
+                    if di <= datetime.strptime(r["fecha"], fmt) <= df and r["nota"] is None
+                )
+                media = sum(vals) / len(vals) if vals else 0
+                st.write(f"**{alum}**")
+                st.write(f"- Media: {media:.2f}")
+                st.write(f"- Excluidos: {exc}")
+                st.markdown("---")
+
+            if len(grupos[grupo]["alumnos"]) == 0:
+                st.info("No hay alumnos registrados en este grupo.")
+
 
 # — Pestaña 3: Crear/Editar Grupos —————————————————
 with tab3:
     st.header("Grupos")
-
-    # Depuración
-    st.markdown("---")
-    st.header("Depuración de Datos")
-    if st.button("Mostrar contenido de grupos.json"):
-        st.json(grupos)
-    if st.button("Mostrar contenido de cuadernoclase.json"):
-        st.json(cuaderno)
-
-    # Opciones
-    modo = st.radio("¿Qué quieres hacer?", ["Crear grupo", "Editar grupo"])
+    modo = st.radio("¿Qué quieres hacer?", ["Crear grupo", "Editar grupo"], key="modo_grupo")
     if modo == "Crear grupo":
-        nm  = st.text_input("Nombre del grupo")
-        tp  = st.selectbox("Tipo", ["Ciclos Formativos", "Estudios Superiores"])
+        nm  = st.text_input("Nombre del grupo", key="nombre_grupo")
+        tp  = st.selectbox("Tipo", ["Ciclos Formativos", "Estudios Superiores"], key="tipo_grupo")
         fechas_sel = []
         labels = ["Primera", "Segunda", "Tercera"] if tp == "Ciclos Formativos" else ["Curso completo"]
-        for lbl in labels:
-            d1 = st.date_input(f"{lbl} inicio", key=f"{lbl}i")
-            d2 = st.date_input(f"{lbl} fin",    key=f"{lbl}f")
+        for idx, lbl in enumerate(labels):
+            d1 = st.date_input(f"{lbl} inicio", key=f"{lbl}i_{idx}")
+            d2 = st.date_input(f"{lbl} fin",    key=f"{lbl}f_{idx}")
             fechas_sel.append((d1.strftime("%d-%m-%Y"), d2.strftime("%d-%m-%Y")))
         if st.button("Guardar nuevo grupo"):
             grupos[nm] = {"tipo": tp, "fechas": fechas_sel, "alumnos": []}
             save_grupos(grupos)
             st.success(f"Grupo '{nm}' creado.")
     else:
-        sel = st.selectbox("Selecciona un grupo", list(grupos.keys()))
+        sel = st.selectbox("Selecciona un grupo", list(grupos.keys()), key="select_grupo")
         info = grupos[sel]
         st.subheader(f"Editando: {sel}")
         st.write("Alumnos actuales:", info["alumnos"])
-        nuevo = st.text_input("Añadir alumno")
+        nuevo = st.text_input("Añadir alumno", key="nuevo_alumno")
         if st.button("Añadir alumno"):
             if nuevo.strip():
                 info["alumnos"].append(nuevo.strip())
                 save_grupos(grupos)
                 st.experimental_rerun()
-        rem = st.selectbox("Eliminar alumno", info["alumnos"] + [""])
+        rem = st.selectbox("Eliminar alumno", info["alumnos"] + [""], key="rem_alumno")
         if rem and st.button("Eliminar alumno"):
             info["alumnos"].remove(rem)
             save_grupos(grupos)
             st.experimental_rerun()
 
         st.markdown("---")
-        # Eliminar grupo completo
         st.warning("Esta acción borrará el grupo por completo.")
         confirm_name = st.text_input("Escribe el nombre del grupo para confirmar eliminación", key="confirm_name")
         if st.button("Eliminar grupo completo"):
@@ -153,50 +196,4 @@ with tab3:
                 st.experimental_rerun()
             else:
                 st.error("El nombre no coincide. Escribe el nombre exacto para confirmar.")
-with tab3:
-    st.header("Grupos")
-    modo = st.radio("¿Qué quieres hacer?", ["Crear grupo", "Editar grupo"])
-    if modo == "Crear grupo":
-        nm  = st.text_input("Nombre del grupo")
-        tp  = st.selectbox("Tipo", ["Ciclos Formativos", "Estudios Superiores"])
-        fechas_sel = []
-        labels = ["Primera", "Segunda", "Tercera"] if tp == "Ciclos Formativos" else ["Curso completo"]
-        for lbl in labels:
-            d1 = st.date_input(f"{lbl} inicio", key=f"{lbl}i")
-            d2 = st.date_input(f"{lbl} fin",    key=f"{lbl}f")
-            fechas_sel.append((d1.strftime("%d-%m-%Y"), d2.strftime("%d-%m-%Y")))
-        if st.button("Guardar nuevo grupo"):
-            grupos[nm] = {"tipo": tp, "fechas": fechas_sel, "alumnos": []}
-            save_grupos(grupos)
-            st.success(f"Grupo '{nm}' creado.")
-    else:
-        sel = st.selectbox("Selecciona un grupo", list(grupos.keys()))
-        info = grupos[sel]
-        st.subheader(f"Editando: {sel}")
-        st.write("Alumnos actuales:", info["alumnos"])
-        nuevo = st.text_input("Añadir alumno")
-        if st.button("Añadir alumno"):
-            if nuevo.strip():
-                info["alumnos"].append(nuevo.strip())
-                save_grupos(grupos)
-                st.experimental_rerun()
-        rem = st.selectbox("Eliminar alumno", info["alumnos"] + [""])
-        if rem and st.button("Eliminar alumno"):
-            info["alumnos"].remove(rem)
-            save_grupos(grupos)
-            st.experimental_rerun()
-
-        st.markdown("---")
-        # Eliminar grupo completo
-        st.warning("Esta acción borrará el grupo por completo.")
-        confirm_name = st.text_input("Escribe el nombre del grupo para confirmar eliminación", key="confirm_name")
-        if st.button("Eliminar grupo completo"):
-            if confirm_name == sel:
-                grupos.pop(sel, None)
-                save_grupos(grupos)
-                st.success(f"Grupo '{sel}' ha sido eliminado.")
-                st.experimental_rerun()
-            else:
-                st.error("El nombre no coincide. Escribe el nombre exacto para confirmar.")
-
 
