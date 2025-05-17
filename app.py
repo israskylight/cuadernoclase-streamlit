@@ -80,7 +80,10 @@ with tab1:
         hubo_prac = st.checkbox("Hubo clase práctica?")
         if hubo_prac:
             material = st.selectbox("Material", ["", "Sí", "No (Justificada)", "No (Injustificada)"])
-            trabajo  = st.selectbox("Trabajo", ["", "Sí", "Parcialmente", "No (Justificada)", "No (Injustificada)"])
+            trabajo  = st.selectbox(
+                "Trabajo",
+                ["", "Sí", "Parcialmente", "No (Justificada)", "No (Injustificada)"]
+            )
         else:
             material = ""
             trabajo  = ""
@@ -124,10 +127,14 @@ with tab2:
             regs = cuaderno.get(grupo, [])
             summary = []
             for alum in grupos[grupo]["alumnos"]:
-                vals = [r["nota"] for r in regs
-                        if di <= datetime.strptime(r["fecha"], fmt) <= df and r["nota"] is not None]
-                exc = sum(1 for r in regs
-                          if di <= datetime.strptime(r["fecha"], fmt) <= df and r["nota"] is None)
+                vals = [
+                    r["nota"] for r in regs
+                    if di <= datetime.strptime(r["fecha"], fmt) <= df and r["nota"] is not None
+                ]
+                exc = sum(
+                    1 for r in regs
+                    if di <= datetime.strptime(r["fecha"], fmt) <= df and r["nota"] is None
+                )
                 media = sum(vals) / len(vals) if vals else 0
                 summary.append({"Alumno": alum, "Media": f"{media:.2f}", "Excluidos": exc})
             st.table(summary)
@@ -140,10 +147,7 @@ with tab3:
         nm  = st.text_input("Nombre del grupo")
         tp  = st.selectbox("Tipo", ["Ciclos Formativos", "Estudios Superiores"])
         fechas_sel = []
-        if tp == "Ciclos Formativos":
-            labels = ["Primera", "Segunda", "Tercera"]
-        else:
-            labels = ["Curso completo"]
+        labels = ["Primera", "Segunda", "Tercera"] if tp == "Ciclos Formativos" else ["Curso completo"]
         for lbl in labels:
             d1 = st.date_input(f"{lbl} inicio", key=f"{lbl}i")
             d2 = st.date_input(f"{lbl} fin",    key=f"{lbl}f")
@@ -156,24 +160,48 @@ with tab3:
         sel = st.selectbox("Selecciona un grupo", list(grupos.keys()))
         info = grupos[sel]
         st.subheader(f"Editando: {sel}")
+
+        # Editar fechas con manejo de IndexError
         nuevas = []
         labels = ["Primera", "Segunda", "Tercera"] if info["tipo"] == "Ciclos Formativos" else ["Curso completo"]
         for idx, lbl in enumerate(labels):
-            d1 = st.date_input(f"{lbl} inicio", datetime.strptime(info["fechas"][idx][0], "%d-%m-%Y"), key=f"e{lbl}i")
-            d2 = st.date_input(f"{lbl} fin",    datetime.strptime(info["fechas"][idx][1], "%d-%m-%Y"), key=f"e{lbl}f")
+            try:
+                f1_str, f2_str = info["fechas"][idx]
+                f1 = datetime.strptime(f1_str, "%d-%m-%Y")
+                f2 = datetime.strptime(f2_str, "%d-%m-%Y")
+            except Exception:
+                f1 = f2 = datetime.today()
+            d1 = st.date_input(f"{lbl} inicio", f1, key=f"e{lbl}i")
+            d2 = st.date_input(f"{lbl} fin",    f2, key=f"e{lbl}f")
             nuevas.append((d1.strftime("%d-%m-%Y"), d2.strftime("%d-%m-%Y")))
+
+        if st.button("Guardar cambios de fechas"):
+            grupos[sel]["fechas"] = nuevas
+            save_grupos(grupos)
+            st.success("Fechas actualizadas.")
+
+        st.markdown("---")
+        # Editar alumnos
         st.write("Alumnos actuales:", info["alumnos"])
         nuevo = st.text_input("Añadir alumno")
         if st.button("Añadir alumno"):
-            info["alumnos"].append(nuevo.strip())
-            save_grupos(grupos)
-            st.experimental_rerun()
+            if nuevo.strip():
+                info["alumnos"].append(nuevo.strip())
+                save_grupos(grupos)
+                st.experimental_rerun()
+
         rem = st.selectbox("Eliminar alumno", info["alumnos"] + [""])
         if rem and st.button("Eliminar alumno"):
             info["alumnos"].remove(rem)
             save_grupos(grupos)
             st.experimental_rerun()
-        if st.button("Guardar cambios de fechas"):
-            grupos[sel]["fechas"] = nuevas
-            save_grupos(grupos)
-            st.success("Fechas actualizadas.")
+
+        st.markdown("---")
+        # Borrar grupo completo con confirmación
+        if st.button("❌ Borrar grupo completo", key="del_grp"):
+            confirm = st.checkbox("Confirmar borrado de este grupo")
+            if confirm and st.button("Confirmar eliminación", key="confirm_del"):
+                grupos.pop(sel, None)
+                save_grupos(grupos)
+                st.success(f"Grupo '{sel}' eliminado.")
+                st.experimental_rerun()
