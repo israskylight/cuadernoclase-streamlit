@@ -205,4 +205,3 @@ with tab3:
             else:
                 st.error("El nombre no coincide. Escribe el nombre exacto para confirmar.")
 ```
-
