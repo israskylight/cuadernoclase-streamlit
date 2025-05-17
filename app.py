@@ -64,6 +64,60 @@ with tab1:
         st.warning("No hay grupos definidos. Ve a la pestaña 'Grupos' para crear uno.")
     else:
         grupo = st.selectbox("Grupo", list(grupos.keys()))
+        alumnos = grupos[grupo]['alumnos']
+
+        if not alumnos:
+            st.warning("No hay alumnos registrados en este grupo.")
+        else:
+            # Estado del índice
+            idx = st.number_input("Selecciona un alumno:", min_value=0, max_value=len(alumnos) - 1, step=1)
+            alumno = alumnos[int(idx)]
+            st.subheader(f"Evaluando: {alumno}")
+
+            # Evaluación de jornada
+            fecha = st.date_input("Fecha", datetime.today())
+            hubo_teo = st.checkbox("Hubo clase teórica?")
+            if hubo_teo:
+                participacion = st.selectbox("Participación", ["", "Kahoot", "Mentimeter", "Apuntes"], key='part')
+                no_part       = st.selectbox("¿No participa?", ["", "Justificada", "Injustificada"], key='nopart')
+            else:
+                participacion = ""
+                no_part       = ""
+            hubo_prac = st.checkbox("Hubo clase práctica?")
+            if hubo_prac:
+                material = st.selectbox("Material", ["", "Sí", "No (Justificada)", "No (Injustificada)"], key='mat')
+                trabajo  = st.selectbox(
+                    "Trabajo",
+                    ["", "Sí", "Parcialmente", "No (Justificada)", "No (Injustificada)"],
+                    key='trab'
+                )
+            else:
+                material = ""
+                trabajo  = ""
+
+            # Nota provisional
+            nota_provisional = calcular_nota(hubo_teo, participacion, no_part, hubo_prac, material, trabajo)
+            st.write(f"Nota provisional: {'Excluido' if nota_provisional is None else nota_provisional}")
+
+            # Botones de navegación
+            if st.button("Guardar evaluación"):
+                nota = calcular_nota(hubo_teo, participacion, no_part, hubo_prac, material, trabajo)
+                regs = cuaderno.get(grupo, [])
+                regs = [r for r in regs if not (r["fecha"] == fecha.strftime("%d-%m-%Y") and r["alumno"] == alumno)]
+                regs.append({"fecha": fecha.strftime("%d-%m-%Y"), "alumno": alumno, "nota": nota})
+                cuaderno[grupo] = regs
+                save_cuaderno(cuaderno)
+                if nota is None:
+                    st.error("Excluido")
+                else:
+                    st.success(f"Nota guardada: {nota:.2f}")
+
+with tab1:
+    st.header("Evaluar Jornada")
+    if not grupos:
+        st.warning("No hay grupos definidos. Ve a la pestaña 'Grupos' para crear uno.")
+    else:
+        grupo = st.selectbox("Grupo", list(grupos.keys()))
         fecha = st.date_input("Fecha", datetime.today())
         hubo_teo = st.checkbox("Hubo clase teórica?")
         if hubo_teo:
