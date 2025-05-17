@@ -100,6 +100,61 @@ with tab1:
 # — Pestaña 3: Crear/Editar Grupos —————————————————
 with tab3:
     st.header("Grupos")
+
+    # Depuración
+    st.markdown("---")
+    st.header("Depuración de Datos")
+    if st.button("Mostrar contenido de grupos.json"):
+        st.json(grupos)
+    if st.button("Mostrar contenido de cuadernoclase.json"):
+        st.json(cuaderno)
+
+    # Opciones
+    modo = st.radio("¿Qué quieres hacer?", ["Crear grupo", "Editar grupo"])
+    if modo == "Crear grupo":
+        nm  = st.text_input("Nombre del grupo")
+        tp  = st.selectbox("Tipo", ["Ciclos Formativos", "Estudios Superiores"])
+        fechas_sel = []
+        labels = ["Primera", "Segunda", "Tercera"] if tp == "Ciclos Formativos" else ["Curso completo"]
+        for lbl in labels:
+            d1 = st.date_input(f"{lbl} inicio", key=f"{lbl}i")
+            d2 = st.date_input(f"{lbl} fin",    key=f"{lbl}f")
+            fechas_sel.append((d1.strftime("%d-%m-%Y"), d2.strftime("%d-%m-%Y")))
+        if st.button("Guardar nuevo grupo"):
+            grupos[nm] = {"tipo": tp, "fechas": fechas_sel, "alumnos": []}
+            save_grupos(grupos)
+            st.success(f"Grupo '{nm}' creado.")
+    else:
+        sel = st.selectbox("Selecciona un grupo", list(grupos.keys()))
+        info = grupos[sel]
+        st.subheader(f"Editando: {sel}")
+        st.write("Alumnos actuales:", info["alumnos"])
+        nuevo = st.text_input("Añadir alumno")
+        if st.button("Añadir alumno"):
+            if nuevo.strip():
+                info["alumnos"].append(nuevo.strip())
+                save_grupos(grupos)
+                st.experimental_rerun()
+        rem = st.selectbox("Eliminar alumno", info["alumnos"] + [""])
+        if rem and st.button("Eliminar alumno"):
+            info["alumnos"].remove(rem)
+            save_grupos(grupos)
+            st.experimental_rerun()
+
+        st.markdown("---")
+        # Eliminar grupo completo
+        st.warning("Esta acción borrará el grupo por completo.")
+        confirm_name = st.text_input("Escribe el nombre del grupo para confirmar eliminación", key="confirm_name")
+        if st.button("Eliminar grupo completo"):
+            if confirm_name == sel:
+                grupos.pop(sel, None)
+                save_grupos(grupos)
+                st.success(f"Grupo '{sel}' ha sido eliminado.")
+                st.experimental_rerun()
+            else:
+                st.error("El nombre no coincide. Escribe el nombre exacto para confirmar.")
+with tab3:
+    st.header("Grupos")
     modo = st.radio("¿Qué quieres hacer?", ["Crear grupo", "Editar grupo"])
     if modo == "Crear grupo":
         nm  = st.text_input("Nombre del grupo")
