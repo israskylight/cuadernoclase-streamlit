@@ -1,0 +1,48 @@
+{
+    "1ef": {
+        "tipo": "Ciclos Formativos",
+        "fechas": [
+            [
+                "17-05-2025",
+                "17-05-2025"
+            ]
+        ],
+        "alumnos": [
+            "pepe",
+            "maria"
+        ]
+    },
+    "1pdod": {
+        "tipo": "Ciclos Formativos",
+        "fechas": [
+            [
+                "17-05-2025",
+                "17-05-2025"
+            ],
+            [
+                "17-05-2025",
+                "17-05-2025"
+            ],
+            [
+                "17-05-2025",
+                "17-05-2025"
+            ]
+        ],
+        "alumnos": [
+            "maria",
+            "pepe"
+        ]
+    },
+    "2A": {
+        "tipo": "Estudios Superiores",
+        "fechas": [
+            [
+                "17-05-2025",
+                "17-05-2025"
+            ]
+        ],
+        "alumnos": [
+            "abel"
+        ]
+    }
+}
