@@ -178,12 +178,12 @@ with tab3:
             if nuevo.strip():
                 info["alumnos"].append(nuevo.strip())
                 save_grupos(grupos)
-                st.experimental_rerun()
+                st.warning('Recarga la página manualmente para ver los cambios')
         rem = st.selectbox("Eliminar alumno", info["alumnos"] + [""], key="rem_alumno")
         if rem and st.button("Eliminar alumno"):
             info["alumnos"].remove(rem)
             save_grupos(grupos)
-            st.experimental_rerun()
+            st.warning('Recarga la página manualmente para ver los cambios')
 
         st.markdown("---")
         st.warning("Esta acción borrará el grupo por completo.")
@@ -193,7 +193,7 @@ with tab3:
                 grupos.pop(sel, None)
                 save_grupos(grupos)
                 st.success(f"Grupo '{sel}' ha sido eliminado.")
-                st.experimental_rerun()
+                st.warning('Recarga la página manualmente para ver los cambios')
             else:
                 st.error("El nombre no coincide. Escribe el nombre exacto para confirmar.")
 
